@@ -1,0 +1,539 @@
+<%layout('./layouts/boilerplate')%>
+
+<head>
+    <style>
+        
+        .uploadpdf {
+            position: relative;
+            top: 12px;
+            cursor: pointer;
+            background: var(--blue);  /* Button background color */
+            font-size: 16px;  /* Adjusted font size for better readability */
+            width: 30px;      /* Ensure width and height are equal */
+            height: 30px;     /* Ensure width and height are equal */
+            color: black;  /* Text color */
+            border-radius: 50%;  /* Creates a circle */
+            font-weight: 700;
+            display: flex;
+            align-items: center;  /* Centers text vertically */
+            justify-content: center;  /* Centers text horizontally */
+            padding: 0;  /* No padding needed, since width/height control the size */
+        }
+
+        .topuploadbox{
+            display: flex;
+            flex-direction: row;
+        }
+
+        /* .topredactbox{
+            position: relative;
+            right: 30px;
+        } */
+       
+        .topuploadbox #text1{
+            position: relative;
+            top: 4px;
+        }
+
+        .topuploadbox #text2{
+            position: relative;
+            top: 4px;
+        }
+
+        .displaydocuments{
+            position: relative;
+            top: -10px;
+            left: 115px;
+        }
+        .downloadbutton{
+            font-size: 15px;
+            position: relative;
+            left: 180px;
+            top: 8px;
+            bottom: 0px;
+        }
+        .submit-document{
+            position: relative;
+            top: 21px;
+            cursor: pointer;
+            left: 105px;
+            background: white;
+            font-size: 10px;
+            padding: 6px 16px;
+            color: black;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+        .redact-checkbox{
+            height: 22px;
+            width: 22px;
+            position: relative;
+            left: 35px;
+        }
+
+
+        .parent-piibox {
+            display: flex !important;
+            justify-content: space-around !important;
+            padding-right: 10px;
+            flex-wrap: wrap !important;
+            flex-direction: row !important;
+            overflow-y: auto; /* Only allow vertical scroll when content exceeds height */
+            max-height: 420px !important; /* Set a maximum height */
+        }
+
+        .no-data-message {
+            text-align: center;
+            width: 100%;
+            font-size: 1.5em;
+            padding: 20px;
+            color: #333;
+        }
+
+        .order {
+            overflow-y: hidden; /* Prevent scrollbars when there is no content */
+            height: auto; /* Automatically adjust height if no content */
+        }
+
+
+        .pii-box-info{
+            width: 300px !important;
+	        background: #eee !important;
+        }
+
+        .firsti1{
+            background: var(--light-blue) !important;
+	        color: var(--blue) !important;
+        }
+
+        .firsti2{
+            background: var(--light-yellow) !important;
+	        color: var(--yellow) !important ;
+        }
+
+        .firsti3{
+            background: var(--light-orange) !important;
+	        color: var(--orange) !important;
+        }
+
+        .progress-circle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+
+        .progress-text {
+            font-size: 18px;
+            fill: black;
+        }
+
+
+    </style>
+</head>
+
+<body>
+    <main>
+        <div class="head-title">
+            <div class="left">
+                <h1>Dashboard</h1>
+                <ul class="breadcrumb">
+                    <li><a href="/">Dashboard</a></li>
+                    <li><i class='bx bx-chevron-right'></i></li>
+                    <li><a class="active" href="/">Home</a></li>
+                </ul>
+            </div>
+            <form action="/redact-the-doc" method="POST">
+                <button class="btnforredacting btn-download" id="btnforredacting" style="display: none;">
+                    <i class='bx bxs-cloud-download'></i>
+                    <span class="text" style="font-size: 20px;">Submit&nbsp;&nbsp;&nbsp;</span>
+                </button>
+            </form>
+        </div>
+        <ul class="box-info">
+            <li class="topuploadbox">
+                <i class='bx bxs-calendar-check'></i>
+                <span class="text" id="text1">
+                        <h3>Uploaded</h3>
+                        <p>Document</p>
+                    <% if (originalfilename) { %>
+                        <span class="displaydocuments">
+                                <p style="font-size: 13px;position: relative;bottom: 9px;"><%= originalfilename %></p>
+                                <a href="/download/<%= originalfilename %>" class="downloadbutton"  data-filename="<%= originalfilename %>"><span class="material-symbols-outlined" style="font-size: 30px;">download</span></a>
+                        </span>
+                    <% } %>
+                </span>
+            </li>
+            
+
+            <li>
+                <span class="text"><h3>Progress:</h3></span>
+                <svg class="progress-circle" width="100" height="100" viewBox="0 0 100 100">
+                    <!-- Full background circle -->
+                    <circle cx="50" cy="50" r="45" stroke="#e6e6e6" stroke-width="10" fill="none"></circle>
+                    <!-- Progress circle (adjust for 'C' shape) -->
+                    <circle class="progress-value" cx="50" cy="50" r="45" 
+                        stroke="#18e028" stroke-width="10" fill="none" 
+                        stroke-dasharray="282.6"  
+                        stroke-dashoffset="282.6"   
+                        transform="rotate(90 50 50)" 
+                    ></circle>
+                    <!-- Progress percentage text -->
+                    <text x="50%" y="50%" text-anchor="middle" dy=".3em" class="progress-text">0%</text>
+                </svg>
+            </li>
+            
+
+            <li class="topuploadbox">
+                <i class='bx bxs-group'></i>
+                <span class="text" id="text2">
+                    <h3>Redacted</h3>
+                    <p>Document</p>
+                    <% if (redactedfilename) { %>
+                        <span class="displaydocuments">
+                            <p style="font-size: 13px;position: relative;bottom: 9px;"><%=redactedfilename %></p>
+                            <button class="downloadbutton" style="background: none;border: none;cursor: pointer;" id="downloadbutton" data-filename="<%= redactedfilename %>"><span class="material-symbols-outlined" style="font-size: 30px;">download</span></button>
+                        </span>
+                    <% } %>
+                </span>
+            </li>
+
+        </ul>
+        <div class="table-data">
+        
+            <div class="todo">
+                <div class="head">
+                    <h3>Upload Document</h3>
+                    <i class='bx bx-plus'></i>
+                    <i class='bx bx-filter'></i>
+                </div>
+                <ul class="adjusting-grid box-info">
+                    <li class="upload-box-info">
+                        <i class='bx bxs-file-pdf'></i>
+                        <span class="text">
+                            <h3>PDF &nbsp;&nbsp;</h3>
+                        </span>
+                        <form action="/uploadpdf" method="post" enctype="multipart/form-data" style="display: flex;flex-direction: column;">
+                            <label for="uploadpdf" class="uploadpdf">+</label>
+                            <input type="file" name="uploadpdf" placeholder="Upload" id="uploadpdf" style="display: none;">
+                            <button class="submit-document" style="border: none;" id="submit-document">Submit</button>
+                        </form>
+                        <span id="file-name" style="font-size: 10px;"></span>
+                        
+                    </li>
+                    <li class="upload-box-info">
+                        <i class='bx bxs-image'></i>
+                        <span class="text">
+                            <h3>Image</h3>
+                        </span>
+                        <form action="/uploadimage" method="POST" enctype="multipart/form-data" style="display: flex;flex-direction: column;">
+                            <label for="uploadimage" class="uploadpdf">+</label>
+                            <input type="file" name="uploadimage" placeholder="Upload" id="uploadimage" style="display: none;">
+                            <button class="submit-document" style="border: none;" id="submit-document">Submit</button>
+                        </form>
+                        <span id="image-name" style="font-size: 10px;"></span>
+                    </li>
+                    <li class="upload-box-info">
+                        <i class='bx bx-paperclip'></i>
+                        <span class="text">
+                            <h3>DOCX</h3>
+                        </span>
+                        <form action="/uploadpdf" method="post" enctype="multipart/form-data" style="display: flex;flex-direction: column;">
+                            <label for="uploadpdf" class="uploadpdf">+</label>
+                            <input type="file" name="uploadpdf" placeholder="Upload" id="uploadpdf" style="display: none;">
+                            <button class="submit-document" style="border: none;" id="submit-document">Submit</button>
+                        </form>
+                    </li>
+                </ul>
+                <ul class="todo-list" id="userList">
+                    <!-- Users will be displayed here -->
+                </ul>
+            </div>
+
+            <!-- Inside your 'order' div -->
+            <div class="order">
+                <div class="head" style="position: sticky;top: 0px;z-index: 1;">
+                    <h3>PII Information</h3>
+                    <label>
+                        <input type="checkbox" id="redactAll" style="height: 22px;width: 22px;position: relative;top: 3px;">
+                        <b>Redact All</b>
+                    </label>
+                </div>
+        
+                <% if (data && data.detected_pii && data.detected_pii.length > 0) { %>
+                   
+                    <h3>Document Type : &nbsp;<%= data.document_type%></h3>
+
+                <% } %>
+
+                <ul class="box-info parent-piibox <%= (data && data.detected_pii && data.detected_pii.length > 0) ? '' : 'no-data-message' %>">
+
+                    <% if (data && data.detected_pii && data.detected_pii.length > 0) { %>
+                        <% let i = 0; %>
+                        <% for (const item of data.detected_pii) { %>
+                            <li class="pii-box-info">
+                                <i class='bx firsti<%= (i % 3) + 1 %>'><%= item[0] %></i>
+                                <% i++ %>
+                                <span class="text">
+                                    <div style="display: flex;">
+                                        <span class="text"><h3 style="font-size: 13px;"><%= item %></h3></span>
+                                        <input type="checkbox" class="redact-checkbox" style="margin-left: auto;">
+                                    </div>
+                                </span>
+                            </li>
+                        <% } %>
+                
+                        <% if (data.detected_pii.length % 2 != 0) { %>
+                            <li class="pii-box-info"></li>
+                        <% } %>
+                    <% } %>
+                </ul>
+
+                <% if (!(data && data.detected_pii && data.detected_pii.length)) { %>
+                    <ul class="box-info">
+                        <li class="pii-box-info" style="position: relative;top: 50px;left: 230px;">
+                            <i class='bx firsti1' id="lsymbol">N</i>
+                            <span class="text">
+                                <div style="display: flex;">
+                                    <h3 style="font-size: 18px;" id="forloadingdisplay">No Data Found</h3>
+                                </div>
+                            </span>
+                        </li>
+                    </ul>
+                <% } %>
+                
+                </div>
+            </div>
+    </main>
+                    
+                   
+    <script>
+        document.getElementById('redactAll').addEventListener('change', function() {
+            // Get the state of the "Redact All" checkbox
+            const isChecked = this.checked;
+
+            // Select all checkboxes with the class "redact-checkbox"
+            const checkboxes = document.querySelectorAll('.redact-checkbox');
+
+            // Set the state of each checkbox based on the "Redact All" checkbox
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+        });
+
+        // Get the filename from the data attribute
+        let textivariable=0;
+        document.querySelectorAll('.downloadbutton').forEach(button => {
+        const originalFilename = button.getAttribute('data-filename');
+        if (originalFilename) {
+            const heightadjust = document.getElementById(`text${++textivariable}`);
+            // Adjust top position for all elements with class 'text'
+                heightadjust.style.top = "25px";
+          }
+          textivariable=(textivariable%2);
+        });
+
+        // document.getElementById('downloadbutton').addEventListener('click', function(event) {
+        //     event.preventDefault();  // Prevent the default action of the anchor tag
+
+        //     // Get the filename from the data-filename attribute
+        //     const originalFilename = this.getAttribute('data-filename');
+
+        //     // Check if the filename is available
+        //     if (originalFilename) {
+        //         // Trigger the file download
+        //         window.location.href = `/download/${originalFilename}`;
+
+        //         // Delay the page refresh by a few seconds to allow the download to start
+        //         setTimeout(() => {
+        //             window.location.reload();
+        //         }, 2000); // Adjust delay as needed
+        //     } else {
+        //         console.error('Filename not found.');
+        //     }
+        // });
+
+
+        document.querySelectorAll('.submit-document').forEach(function(button) {
+            button.addEventListener('click', function(event) {
+                const lsymbol = document.getElementById("lsymbol");
+                const forloadingdisplay = document.getElementById("forloadingdisplay");
+                lsymbol.innerText = "L";
+                forloadingdisplay.innerText = "Loading...";
+            });
+        });
+
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const progressCircle = document.querySelector('.progress-value');
+            const progressText = document.querySelector('.progress-text');
+            const radius = progressCircle.r.baseVal.value;
+            const circumference = 2 * Math.PI * radius;
+
+            let progress = 0;  // Initialize progress at 0%
+
+            // Set the circle's dasharray and dashoffset to match the circumference
+            progressCircle.style.strokeDasharray = `${circumference}`;
+            progressCircle.style.strokeDashoffset = `${circumference}`;  // Initially hidden (no progress)
+
+            function updateProgress() {
+                const offset = circumference - (progress / 100) * circumference;
+                progressCircle.style.strokeDashoffset = offset;
+                progressText.textContent = `${Math.round(progress)}%`;
+
+           
+                // //for displaying the submit button
+                if(progress>50)
+                    {
+                        document.getElementById('btnforredacting').style.display = 'flex';
+                    }
+                else{
+                    document.getElementById('btnforredacting').style.display = 'none';
+                }
+
+
+            }
+
+            // Initial call to set progress at 0%
+            updateProgress();
+
+            // Check if `originalFilename` is present and set progress to 50%
+            const ofn = document.getElementsByClassName('downloadbutton')
+            console.log('5')
+            
+            const originalFilename = ofn[0].getAttribute('data-filename');
+            
+            if (originalFilename) {
+                progress = 50;
+                updateProgress();
+            }
+
+            // Simulating progress updates (you can replace this with real logic)
+            const uploadpdf = document.getElementById('uploadpdf');
+            const submitDocument = document.querySelector('.submit-document');
+
+            uploadpdf.addEventListener('change', function () {
+                if (this.files.length > 0) {
+                    progress = 50;  // Change this value as needed
+                    updateProgress();
+                }
+            });
+
+            submitDocument.addEventListener('click', function () {
+                progress = 50;  // Adjust as per your logic
+                updateProgress();
+            });
+
+            // Redact All and individual checkbox logic
+            const checkboxes = document.querySelectorAll('.redact-checkbox');
+            const totalCheckboxes = checkboxes.length;
+            const checkboxIncrement = totalCheckboxes > 0 ? 40 / totalCheckboxes : 0;
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    if (this.checked) {
+                        progress += checkboxIncrement;
+                    } else {
+                        progress -= checkboxIncrement;
+                    }
+
+                    // Ensure progress is at least 50%
+                    if (progress < 50) progress = 50;
+
+                    // Ensure progress does not exceed 100%
+                    if (progress > 100) progress = 100;
+
+                    updateProgress();
+
+                    
+                });
+            });
+
+            // Redact All checkbox logic
+            document.getElementById('redactAll').addEventListener('change', function () {
+                const isChecked = this.checked;
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+
+                if (isChecked) {
+                    progress = 90;  // Adjust as needed
+                } else {
+                    progress = 50;  // Adjust as needed
+                }
+
+                updateProgress();
+            });
+        });
+
+
+
+        // Handle individual checkbox change event
+document.querySelectorAll('.redact-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const parentElement = checkbox.closest('.pii-box-info');
+        const piiText = parentElement.querySelector('h3').innerText;
+        const form = document.querySelector('form[action="/redact-the-doc"]');
+
+        if (this.checked) {
+            // Create a new hidden input element for checked items
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selectedPIIs[]';  // Name for the input array
+            input.value = piiText;  // Set the PII text as the value
+            input.classList.add('pii-input');  // Add a class to reference later
+            
+            // Append it to the form
+            form.appendChild(input);
+        } else {
+            // Remove the corresponding hidden input if checkbox is unchecked
+            const inputToRemove = form.querySelector(`input[value="${piiText}"]`);
+            if (inputToRemove) {
+                form.removeChild(inputToRemove);
+            }
+        }
+    });
+});
+
+// Handle Redact All checkbox
+document.getElementById('redactAll').addEventListener('change', function() {
+    const allCheckboxes = document.querySelectorAll('.redact-checkbox');
+    const form = document.querySelector('form[action="/redact-the-doc"]');
+
+    if (this.checked) {
+        allCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;  // Check all checkboxes
+            const parentElement = checkbox.closest('.pii-box-info');
+            const piiText = parentElement.querySelector('h3').innerText;
+
+            // Check if the hidden input already exists, if not create it
+            if (!form.querySelector(`input[value="${piiText}"]`)) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selectedPIIs[]';
+                input.value = piiText;
+                input.classList.add('pii-input');
+                form.appendChild(input);
+            }
+        });
+    } else {
+        // Uncheck all checkboxes and remove all hidden input fields
+        allCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Remove all hidden input fields with class 'pii-input'
+        document.querySelectorAll('.pii-input').forEach(input => {
+            form.removeChild(input);
+        });
+    }
+});
+
+
+
+
+    </script>
+</body>
+
