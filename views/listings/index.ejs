@@ -130,6 +130,22 @@
         }
 
 
+        /* Rotating animation */
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .rotate-animation {
+            animation: rotate 2s linear infinite;  /* Rotate for 2 seconds, loop infinitely */
+            transform-origin: 50% 50%;  /* Ensure rotation occurs from the center of the circle */
+        }
+
+
     </style>
 </head>
 
@@ -144,7 +160,7 @@
                     <li><a class="active" href="/">Home</a></li>
                 </ul>
             </div>
-            <form action="/redact-the-doc" method="POST">
+            <form id="redactForm" method="POST">
                 <button class="btnforredacting btn-download" id="btnforredacting" style="display: none;">
                     <i class='bx bxs-cloud-download'></i>
                     <span class="text" style="font-size: 20px;">Submit&nbsp;&nbsp;&nbsp;</span>
@@ -160,7 +176,7 @@
                     <% if (originalfilename) { %>
                         <span class="displaydocuments">
                                 <p style="font-size: 13px;position: relative;bottom: 9px;"><%= originalfilename %></p>
-                                <a href="/download/<%= originalfilename %>" class="downloadbutton"  data-filename="<%= originalfilename %>"><span class="material-symbols-outlined" style="font-size: 30px;">download</span></a>
+                                <a href="/download/<%= originalfilename %>" class="downloadbutton"  data-filename="<%= originalfilename %>" id="retrieveforform"><span class="material-symbols-outlined" style="font-size: 30px;">download</span></a>
                         </span>
                     <% } %>
                 </span>
@@ -261,7 +277,7 @@
                     </label>
                 </div>
         
-                <% if (data && data.detected_pii && data.detected_pii.length > 0) { %>
+                <% if (data && data.document_type) { %>
                    
                     <h3>Document Type : &nbsp;<%= data.document_type%></h3>
 
@@ -334,25 +350,7 @@
           textivariable=(textivariable%2);
         });
 
-        // document.getElementById('downloadbutton').addEventListener('click', function(event) {
-        //     event.preventDefault();  // Prevent the default action of the anchor tag
-
-        //     // Get the filename from the data-filename attribute
-        //     const originalFilename = this.getAttribute('data-filename');
-
-        //     // Check if the filename is available
-        //     if (originalFilename) {
-        //         // Trigger the file download
-        //         window.location.href = `/download/${originalFilename}`;
-
-        //         // Delay the page refresh by a few seconds to allow the download to start
-        //         setTimeout(() => {
-        //             window.location.reload();
-        //         }, 2000); // Adjust delay as needed
-        //     } else {
-        //         console.error('Filename not found.');
-        //     }
-        // });
+        
 
 
         document.querySelectorAll('.submit-document').forEach(function(button) {
@@ -409,6 +407,21 @@
                 progress = 50;
                 updateProgress();
             }
+
+
+            // Check if `originalFilename` is present and set progress to 50%
+            const orn = document.getElementsByClassName('downloadbutton')
+            console.log('5')
+            
+            if(orn[1]){
+                const redactedFilename = orn[1].getAttribute('data-filename');
+                if (redactedFilename) {
+                    progress = 100;
+                    updateProgress();
+                }
+            }
+            
+            
 
             // Simulating progress updates (you can replace this with real logic)
             const uploadpdf = document.getElementById('uploadpdf');
@@ -531,6 +544,99 @@ document.getElementById('redactAll').addEventListener('change', function() {
     }
 });
 
+
+    document.getElementById('btnforredacting').addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            // Get the file name stored earlier
+            const retrieveforform = document.getElementById("retrieveforform");
+            const originalFileName = retrieveforform.getAttribute("data-filename");
+
+            // Get the form element
+            const form = document.getElementById('redactForm');
+
+            // Get the file extension from the file name
+            const fileExtension = originalFileName.split('.').pop().toLowerCase();
+
+            // Set the form action based on the file type
+            switch(fileExtension) {
+                case 'pdf':
+                    form.action = '/redact-the-pdf';
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                    form.action = '/redact-the-img';
+                    break;
+                case 'txt':
+                case 'docx':
+                    form.action = '/redact-the-doc';
+                    break;
+                default:
+                    alert("Unsupported file format!");
+                    return;
+            }
+
+            // Ensure hidden inputs for selected checkboxes are present
+            const selectedPIIs = Array.from(document.querySelectorAll('.redact-checkbox:checked')).map(checkbox => {
+                const parentElement = checkbox.closest('.pii-box-info');
+                return parentElement.querySelector('h3').innerText;
+            });
+
+            // Clear existing hidden inputs
+            document.querySelectorAll('#redactForm input[name="selectedPIIs[]"]').forEach(input => {
+                input.remove();
+            });
+
+            // Append new hidden inputs for selected PIIs
+            selectedPIIs.forEach(pii => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selectedPIIs[]';
+                input.value = pii;
+                form.appendChild(input);
+            });
+
+            // Submit the form after setting the action
+            form.submit();
+    });
+
+
+
+    const redactButton = document.getElementById('btnforredacting');
+    const progressCircle = document.querySelector('.progress-value');  // Use the entire SVG or the circle
+
+    redactButton.addEventListener('click', function () {
+        progressCircle.classList.add('rotate-animation');  // Add the animation class on click
+    });
+
+
+
+    // Select all elements with the class 'downloadbutton'
+const downloadButtons = document.getElementsByClassName('downloadbutton');
+
+// Loop through all the buttons and add the event listener
+for (let i = 0; i < downloadButtons.length; i++) {
+    downloadButtons[i].addEventListener('click', function(event) {
+        event.preventDefault();  // Prevent the default action of the anchor tag
+
+        // Get the filename from the data-filename attribute
+        const originalFilename = this.getAttribute('data-filename');
+
+        // Check if the filename is available
+        if (originalFilename) {
+            // Trigger the file download
+            window.location.href = `/download/${originalFilename}`;
+
+            // Delay the page refresh by a few seconds to allow the download to start
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000); // Adjust delay as needed
+        } else {
+            console.error('Filename not found.');
+        }
+    });
+}
 
 
 
