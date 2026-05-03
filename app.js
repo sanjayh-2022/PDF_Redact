@@ -11,6 +11,12 @@ const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
 const methodoverride=require('method-override');
+const uploadsDir = process.env.VERCEL ? '/tmp' : path.join(__dirname, 'uploads');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 app.set('view engine','ejs');
 app.set('views',path.join(__dirname,"/views"));
 app.use(express.static(path.join(__dirname,'/public')));
@@ -40,7 +46,7 @@ sessionOptions={
 const upload = multer({ 
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, '/tmp/'); // Specify the uploads directory
+      cb(null, uploadsDir);
     },
     filename: function (req, file, cb) {
       cb(null, file.originalname); // Use the original file name
@@ -85,7 +91,7 @@ app.get("/", (req, res) => {
 // After a successful file upload, update session variables
 app.post('/uploadpdf', upload.single('uploadpdf'), async (req, res) => {
   try {
-    const apiUrl = 'https://aswinr24-piicrunch-api.hf.space/pdf/detect';
+    const apiUrl = 'http://127.0.0.1:8000/pdf/detect';
 
     if (!req.file) {
       return res.status(400).send('No file uploaded.');
@@ -133,7 +139,7 @@ app.post('/uploadpdf', upload.single('uploadpdf'), async (req, res) => {
 app.post('/uploadimage', upload.single('uploadimage'), async (req, res) => {
   try {
     // API endpoint for PII detection
-    const apiUrl = 'https://aswinr24-piicrunch-api.hf.space/image/detect';
+    const apiUrl = 'http://127.0.0.1:8000/image/detect';
 
     // Check if the file was uploaded
     if (!req.file) {
@@ -160,6 +166,7 @@ app.post('/uploadimage', upload.single('uploadimage'), async (req, res) => {
     // Store the PII data received from the external API in the session
     req.session.data = response.data; // Store PII data in session
     req.session.originalfilename = req.file.originalname; // Store original file name in session
+    req.session.filepath = req.file.path; // Store the uploaded file path in session
 
     // Respond with the PII data (not an image)
     res.redirect('/');
@@ -176,7 +183,7 @@ app.post('/uploadimage', upload.single('uploadimage'), async (req, res) => {
 
 app.get('/download/:filename', (req, res) => {
   const filename = req.params.filename;
-  const filePath = path.join(__dirname, 'uploads', filename); // Define the file path
+  const filePath = path.join(uploadsDir, filename); // Define the file path
 
   // Check if the file exists in the uploads directory
   if (!fs.existsSync(filePath)) {
@@ -200,7 +207,7 @@ app.get('/download/:filename', (req, res) => {
                 console.log(`Successfully deleted redacted file: ${filePath}`);
 
                 // Now delete the original file as well
-                const originalFilePath = path.join(__dirname, 'uploads', req.session.originalfilename);
+                const originalFilePath = path.join(uploadsDir, req.session.originalfilename);
 
                 fs.unlink(originalFilePath, (unlinkOrigErr) => {
                     if (unlinkOrigErr) {
@@ -251,7 +258,6 @@ app.get('/download/:filename', (req, res) => {
 app.post('/redact-the-pdf', (req, res) => {
   const selectedPIIs = req.body.selectedPIIs;
   const originalFilename = req.session.originalfilename;
-  const uploadsDir = path.join(__dirname, 'uploads'); // Assuming uploads directory exists
 
   console.log('Received pdf PIIs:', selectedPIIs);
 
@@ -270,7 +276,7 @@ app.post('/redact-the-pdf', (req, res) => {
       form.append('file', fs.createReadStream(filePath));
 
       // Send POST request to the redaction API
-      axios.post('https://aswinr24-piicrunch-api.hf.space/pdf/redact', form, {
+      axios.post('http://127.0.0.1:8000/pdf/redact', form, {
           headers: {
               ...form.getHeaders()
           },
@@ -310,9 +316,8 @@ app.post('/redact-the-img', (req, res) => {
 
   const selectedPIIs = req.body.selectedPIIs;
   const originalFilename = req.session.originalfilename;
-  const uploadsDir = path.join(__dirname, 'uploads'); // Assuming uploads directory exists
 
-  console.log('Received pdf PIIs:', selectedPIIs);
+  console.log('Received image PIIs:', selectedPIIs);
 
   if (!selectedPIIs || !originalFilename) {
       console.log('No PIIs or original file received!');
@@ -329,7 +334,7 @@ app.post('/redact-the-img', (req, res) => {
       form.append('file', fs.createReadStream(filePath));
 
       // Send POST request to the redaction API
-      axios.post('https://aswinr24-piicrunch-api.hf.space/image/redact', form, {
+      axios.post('http://127.0.0.1:8000/image/redact', form, {
           headers: {
               ...form.getHeaders()
           },
